@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cámara de Voz</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: white;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .camera-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        video {
+            width: 100%;
+            max-width: 640px;
+            height: 480px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            object-fit: cover;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #4834d4, #686de0);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #00d2d3, #54a0ff);
+            color: white;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .status.listening {
+            background: rgba(76, 175, 80, 0.3);
+            border-color: #4CAF50;
+            animation: pulse 2s infinite;
+        }
+
+        .status.error {
+            background: rgba(244, 67, 54, 0.3);
+            border-color: #F44336;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .canvas-section {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        canvas {
+            max-width: 100%;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .photo-controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .instructions h3 {
+            margin-bottom: 15px;
+            color: #ffd700;
+        }
+
+        .instructions ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .instructions li {
+            margin: 10px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .instructions li::before {
+            content: "🎤";
+            position: absolute;
+            left: 0;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            video {
+                height: 300px;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            button {
+                width: 100%;
+                max-width: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📸 Cámara de Voz</h1>
+        
+        <div class="camera-section">
+            <video id="video" autoplay muted playsinline></video>
+            
+            <div class="controls">
+                <button id="startCamera" class="btn-primary">Iniciar Cámara</button>
+                <button id="startListening" class="btn-secondary" disabled>Activar Voz</button>
+                <button id="takePhoto" class="btn-success">Tomar Foto</button>
+            </div>
+        </div>
+
+        <div id="status" class="status">
+            Haz clic en "Iniciar Cámara" para comenzar
+        </div>
+
+        <div class="canvas-section">
+            <canvas id="canvas" width="640" height="480" style="display: none;"></canvas>
+            <div class="photo-controls" id="photoControls" style="display: none;">
+                <button id="downloadPhoto" class="btn-success">Descargar Foto</button>
+                <button id="retakePhoto" class="btn-secondary">Tomar Otra</button>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h3>📋 Instrucciones:</h3>
+            <ul>
+                <li>Haz clic en "Iniciar Cámara" para acceder a tu cámara web</li>
+                <li>Presiona "Activar Voz" para habilitar el reconocimiento de voz</li>
+                <li>Di la palabra "foto" para capturar una imagen automáticamente</li>
+                <li>También puedes usar el botón "Tomar Foto" manualmente</li>
+                <li>Una vez capturada, puedes descargar la foto o tomar otra</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        class VoiceCamera {
+            constructor() {
+                this.video = document.getElementById('video');
+                this.canvas = document.getElementById('canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.status = document.getElementById('status');
+                this.photoControls = document.getElementById('photoControls');
+                
+                this.stream = null;
+                this.recognition = null;
+                this.isListening = false;
+                this.photoCount = 0;
+
+                this.initializeButtons();
+                this.initializeSpeechRecognition();
+            }
+
+            initializeButtons() {
+                document.getElementById('startCamera').onclick = () => this.startCamera();
+                document.getElementById('startListening').onclick = () => this.toggleListening();
+                document.getElementById('takePhoto').onclick = () => this.takePhoto();
+                document.getElementById('downloadPhoto').onclick = () => this.downloadPhoto();
+                document.getElementById('retakePhoto').onclick = () => this.retakePhoto();
+            }
+
+            initializeSpeechRecognition() {
+                if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                    this.updateStatus('Tu navegador no soporta reconocimiento de voz', 'error');
+                    return;
+                }
+
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                this.recognition = new SpeechRecognition();
+                
+                this.recognition.continuous = true;
+                this.recognition.interimResults = true;
+                this.recognition.lang = 'es-ES';
+
+                this.recognition.onstart = () => {
+                    this.isListening = true;
+                    this.updateStatus('🎤 Escuchando... Di "foto" para capturar', 'listening');
+                    document.getElementById('startListening').textContent = 'Detener Voz';
+                };
+
+                this.recognition.onresult = (event) => {
+                    let finalTranscript = '';
+                    
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript.toLowerCase().trim();
+                        
+                        if (event.results[i].isFinal) {
+                            finalTranscript += transcript;
+                        }
+                    }
+
+                    if (finalTranscript.includes('foto')) {
+                        this.takePhoto();
+                        this.updateStatus('📸 ¡Foto capturada por comando de voz!');
+                    }
+                };
+
+                this.recognition.onerror = (event) => {
+                    console.error('Error de reconocimiento de voz:', event.error);
+                    this.updateStatus(`Error de voz: ${event.error}`, 'error');
+                    this.stopListening();
+                };
+
+                this.recognition.onend = () => {
+                    if (this.isListening) {
+                        // Reiniciar automáticamente si se detuvo inesperadamente
+                        setTimeout(() => {
+                            if (this.isListening) {
+                                this.recognition.start();
+                            }
+                        }, 1000);
+                    }
+                };
+            }
+
+            async startCamera() {
+                try {
+                    this.stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { 
+                            width: { ideal: 640 }, 
+                            height: { ideal: 480 } 
+                        } 
+                    });
+                    
+                    this.video.srcObject = this.stream;
+                    this.updateStatus('📹 Cámara iniciada correctamente');
+                    
+                    document.getElementById('startCamera').disabled = true;
+                    document.getElementById('startListening').disabled = false;
+                    document.getElementById('takePhoto').disabled = false;
+                    
+                } catch (error) {
+                    console.error('Error al acceder a la cámara:', error);
+                    this.updateStatus('❌ Error al acceder a la cámara. Verifica los permisos.', 'error');
+                }
+            }
+
+            toggleListening() {
+                if (!this.recognition) {
+                    this.updateStatus('Reconocimiento de voz no disponible', 'error');
+                    return;
+                }
+
+                if (this.isListening) {
+                    this.stopListening();
+                } else {
+                    this.startListening();
+                }
+            }
+
+            startListening() {
+                try {
+                    this.recognition.start();
+                } catch (error) {
+                    console.error('Error al iniciar reconocimiento:', error);
+                    this.updateStatus('Error al iniciar el reconocimiento de voz', 'error');
+                }
+            }
+
+            stopListening() {
+                this.isListening = false;
+                if (this.recognition) {
+                    this.recognition.stop();
+                }
+                this.updateStatus('🔇 Reconocimiento de voz detenido');
+                document.getElementById('startListening').textContent = 'Activar Voz';
+            }
+
+            takePhoto() {
+                if (!this.stream) {
+                    this.updateStatus('⚠️ Primero inicia la cámara', 'error');
+                    return;
+                }
+
+                // Configurar canvas con las dimensiones del video
+                this.canvas.width = this.video.videoWidth || 640;
+                this.canvas.height = this.video.videoHeight || 480;
+                
+                // Dibujar el frame actual del video en el canvas
+                this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
+                
+                // Mostrar el canvas y los controles
+                this.canvas.style.display = 'block';
+                this.photoControls.style.display = 'flex';
+                
+                this.photoCount++;
+                this.updateStatus(`📸 Foto ${this.photoCount} capturada exitosamente`);
+            }
+
+            downloadPhoto() {
+                const link = document.createElement('a');
+                link.download = `foto-voz-${Date.now()}.png`;
+                link.href = this.canvas.toDataURL('image/png');
+                link.click();
+                
+                this.updateStatus('💾 Foto descargada correctamente');
+            }
+
+            retakePhoto() {
+                this.canvas.style.display = 'none';
+                this.photoControls.style.display = 'none';
+                this.updateStatus('📹 Listo para tomar otra foto');
+            }
+
+            updateStatus(message, type = '') {
+                this.status.textContent = message;
+                this.status.className = `status ${type}`;
+            }
+        }
+
+        // Inicializar la aplicación cuando se carga la página
+        document.addEventListener('DOMContentLoaded', () => {
+            new VoiceCamera();
+        });
+    </script>
+</body>
+</html>
